@@ -29,6 +29,13 @@
 #include "dynablock.h"
 #endif
 
+#ifdef __BIONIC__
+// #include <android/api-level.h>
+#define __sigset_t sigset_t
+// #define __pthread_unwind_buf_t __pthread_cleanup_t
+// #define __cancel_jmp_buf __cleanup_prev
+#endif
+
 //void _pthread_cleanup_push_defer(void* buffer, void* routine, void* arg);	// declare hidden functions
 //void _pthread_cleanup_pop_restore(void* buffer, int exec);
 typedef void (*vFppp_t)(void*, void*, void*);
@@ -65,7 +72,10 @@ typedef struct x64_unwind_buff_s {
 typedef void(*vFv_t)();
 
 KHASH_MAP_INIT_INT64(threadstack, threadstack_t*)
+
+#ifndef __BIONIC__
 KHASH_MAP_INIT_INT64(cancelthread, __pthread_unwind_buf_t*)
+#endif
 
 void CleanStackSize(box64context_t* context)
 {
@@ -123,6 +133,7 @@ int GetStackSize(x64emu_t* emu, uintptr_t attr, void** stack, size_t* stacksize)
 	return 0;
 }
 
+#ifndef __BIONIC__
 static void InitCancelThread()
 {
 }
@@ -150,6 +161,7 @@ static void DelCancelThread(x64_unwind_buff_t* buff)
 	free(r);
 	buff->__pad[3] = NULL;
 }
+#endif
 
 typedef struct emuthread_s {
 	uintptr_t 	fnc;
@@ -341,11 +353,13 @@ EXPORT int my_pthread_attr_getguardsize(x64emu_t* emu, pthread_attr_t* attr, siz
 	(void)emu;
 	return pthread_attr_getguardsize(getAlignedAttr(attr), size);
 }
+#if __ANDROID_API__ >= 28
 EXPORT int my_pthread_attr_getinheritsched(x64emu_t* emu, pthread_attr_t* attr, int* sched)
 {
 	(void)emu;
 	return pthread_attr_getinheritsched(getAlignedAttr(attr), sched);
 }
+#endif
 EXPORT int my_pthread_attr_getschedparam(x64emu_t* emu, pthread_attr_t* attr, void* param)
 {
 	(void)emu;
@@ -383,11 +397,13 @@ EXPORT int my_pthread_attr_init(x64emu_t* emu, pthread_attr_t* attr)
 	(void)emu;
 	return pthread_attr_init(getAlignedAttrWithInit(attr, 0));
 }
+#ifndef __BIONIC__
 EXPORT int my_pthread_attr_setaffinity_np(x64emu_t* emu, pthread_attr_t* attr, size_t cpusize, void* cpuset)
 {
 	(void)emu;
 	return pthread_attr_setaffinity_np(getAlignedAttr(attr), cpusize, cpuset);
 }
+#endif
 EXPORT int my_pthread_attr_setdetachstate(x64emu_t* emu, pthread_attr_t* attr, int state)
 {
 	(void)emu;
@@ -398,11 +414,13 @@ EXPORT int my_pthread_attr_setguardsize(x64emu_t* emu, pthread_attr_t* attr, siz
 	(void)emu;
 	return pthread_attr_setguardsize(getAlignedAttr(attr), size);
 }
+#ifndef __BIONIC__
 EXPORT int my_pthread_attr_setinheritsched(x64emu_t* emu, pthread_attr_t* attr, int sched)
 {
 	(void)emu;
 	return pthread_attr_setinheritsched(getAlignedAttr(attr), sched);
 }
+#endif
 EXPORT int my_pthread_attr_setschedparam(x64emu_t* emu, pthread_attr_t* attr, void* param)
 {
 	(void)emu;
@@ -496,6 +514,8 @@ void* my_prepare_thread(x64emu_t *emu, void* f, void* arg, int ssize, void** pet
 
 void my_longjmp(x64emu_t* emu, /*struct __jmp_buf_tag __env[1]*/void *p, int32_t __val);
 
+#ifndef __BIONIC__
+
 #define CANCEL_MAX 8
 static __thread x64emu_t* cancel_emu[CANCEL_MAX] = {0};
 static __thread x64_unwind_buff_t* cancel_buff[CANCEL_MAX] = {0};
@@ -548,6 +568,8 @@ EXPORT void my___pthread_unwind_next(x64emu_t* emu, x64_unwind_buff_t* buff)
 	// just in case it does return
 	emu->quit = 1;
 }
+
+#endif
 
 KHASH_MAP_INIT_INT(once, int)
 
@@ -697,6 +719,8 @@ EXPORT void my__pthread_cleanup_pop(x64emu_t* emu, void* buffer, int exec)
 	_pthread_cleanup_pop(buffer, exec);
 }
 
+#ifndef __BIONIC__
+
 EXPORT int my_pthread_getaffinity_np(x64emu_t* emu, pthread_t thread, size_t cpusetsize, void* cpuset)
 {
 	(void)emu;
@@ -718,6 +742,8 @@ EXPORT int my_pthread_setaffinity_np(x64emu_t* emu, pthread_t thread, size_t cpu
 
     return ret;
 }
+
+#endif
 
 //EXPORT int my_pthread_attr_setaffinity_np(x64emu_t* emu, void* attr, uint32_t cpusetsize, void* cpuset)
 //{
@@ -910,6 +936,9 @@ EXPORT int my_pthread_mutexattr_getkind_np(x64emu_t* emu, my_mutexattr_t *attr, 
 	attr->x86 = mattr.x86;
 	return ret;
 }
+
+#ifndef __BIONIC__
+
 EXPORT int my_pthread_mutexattr_getprotocol(x64emu_t* emu, my_mutexattr_t *attr, void* p)
 {
 	my_mutexattr_t mattr = {0};
@@ -918,6 +947,9 @@ EXPORT int my_pthread_mutexattr_getprotocol(x64emu_t* emu, my_mutexattr_t *attr,
 	attr->x86 = mattr.x86;
 	return ret;
 }
+
+#endif
+
 EXPORT int my_pthread_mutexattr_gettype(x64emu_t* emu, my_mutexattr_t *attr, void* p)
 {
 	my_mutexattr_t mattr = {0};
@@ -944,6 +976,9 @@ EXPORT int my_pthread_mutexattr_setkind_np(x64emu_t* emu, my_mutexattr_t *attr, 
 	attr->x86 = mattr.x86;
 	return ret;
 }
+
+#ifndef __BIONIC__
+
 EXPORT int my_pthread_mutexattr_setprotocol(x64emu_t* emu, my_mutexattr_t *attr, int p)
 {
 	my_mutexattr_t mattr = {0};
@@ -952,6 +987,9 @@ EXPORT int my_pthread_mutexattr_setprotocol(x64emu_t* emu, my_mutexattr_t *attr,
 	attr->x86 = mattr.x86;
 	return ret;
 }
+
+#endif
+
 EXPORT int my_pthread_mutexattr_setpshared(x64emu_t* emu, my_mutexattr_t *attr, int p)
 {
 	my_mutexattr_t mattr = {0};

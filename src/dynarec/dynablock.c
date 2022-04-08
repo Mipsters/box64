@@ -295,8 +295,12 @@ dynablock_t *AddNewDynablock(dynablocklist_t* dynablocks, uintptr_t addr, int* c
     return block;
 }
 
+#ifdef __BIONIC__
+static __thread jmp_buf dynarec_jmpbuf;
+#else
 //TODO: move this to dynrec_arm.c and track allocated structure to avoid memory leak
 static __thread struct __jmp_buf_tag dynarec_jmpbuf;
+#endif
 
 void cancelFillBlock()
 {

@@ -6,7 +6,159 @@
 #include <stddef.h>
 #include <string.h>
 #include <dlfcn.h>
+
+#ifdef __BIONIC__
+
+#ifdef __PTRDIFF_TYPE__
+# define PTR_INT_TYPE __PTRDIFF_TYPE__
+#else
+# include <stddef.h>
+# define PTR_INT_TYPE ptrdiff_t
+#endif
+
+struct _obstack_chunk           /* Lives at front of each chunk. */
+{
+  char *limit;                  /* 1 past end of this chunk */
+  struct _obstack_chunk *prev;  /* address of prior chunk or NULL */
+  char contents[4];             /* objects begin here */
+};
+
+struct obstack          /* control current object in current chunk */
+{
+  long chunk_size;              /* preferred size to allocate chunks in */
+  struct _obstack_chunk *chunk; /* address of current struct obstack_chunk */
+  char *object_base;            /* address of object we are building */
+  char *next_free;              /* where to add next char to current object */
+  char *chunk_limit;            /* address of char after current chunk */
+  union
+  {
+    PTR_INT_TYPE tempint;
+    void *tempptr;
+  } temp;                       /* Temporary for some macros.  */
+  int alignment_mask;           /* Mask of alignment for each object. */
+  /* These prototypes vary based on 'use_extra_arg', and we use
+     casts to the prototypeless function type in all assignments,
+     but having prototypes here quiets -Wstrict-prototypes.  */
+  struct _obstack_chunk *(*chunkfun) (void *, long);
+  void (*freefun) (void *, struct _obstack_chunk *);
+  void *extra_arg;              /* first arg for chunk alloc/dealloc funcs */
+  unsigned use_extra_arg : 1;     /* chunk alloc/dealloc funcs take extra arg */
+  unsigned maybe_empty_object : 1; /* There is a possibility that the current
+                                      chunk contains a zero-length object.  This
+                                      prevents freeing the chunk if we allocate
+                                      a bigger chunk to replace it. */
+  unsigned alloc_failed : 1;      /* No longer used, as we now call the failed
+                                     handler on error, but retained for binary
+                                     compatibility.  */
+};
+
+/* Determine default alignment.  */
+union fooround
+{
+  uintmax_t i;
+  long double d;
+  void *p;
+};
+struct fooalign
+{
+  char c;
+  union fooround u;
+};
+/* If malloc were really smart, it would round addresses to DEFAULT_ALIGNMENT.
+   But in fact it might be less smart and round addresses to as much as
+   DEFAULT_ROUNDING.  So we prepare for it to do that.  */
+enum
+{
+  DEFAULT_ALIGNMENT = offsetof (struct fooalign, u),
+  DEFAULT_ROUNDING = sizeof (union fooround)
+};
+
+/* The functions allocating more room by calling 'obstack_chunk_alloc'
+    jump to the handler pointed to by 'obstack_alloc_failed_handler'.
+    This can be set to a user defined function which should either
+    abort gracefully or use longjump - but shouldn't return.  This
+    variable by default points to the internal function
+    'print_and_abort'.  */
+ static _Noreturn void print_and_abort (void);
+ void (*obstack_alloc_failed_handler) (void) = print_and_abort;
+
+/* Define a macro that either calls functions with the traditional malloc/free
+   calling interface, or calls functions with the mmalloc/mfree interface
+   (that adds an extra first argument), based on the state of use_extra_arg.
+   For free, do not use ?:, since some compilers, like the MIPS compilers,
+   do not allow (expr) ? void : void.  */
+
+# define CALL_CHUNKFUN(h, size) \
+  (((h)->use_extra_arg)                                                       \
+   ? (*(h)->chunkfun)((h)->extra_arg, (size))                                 \
+   : (*(struct _obstack_chunk *(*)(long))(h)->chunkfun)((size)))
+
+# define CALL_FREEFUN(h, old_chunk) \
+  do { \
+      if ((h)->use_extra_arg)                                                 \
+        (*(h)->freefun)((h)->extra_arg, (old_chunk));                         \
+      else                                                                    \
+        (*(void (*)(void *))(h)->freefun)((old_chunk));                       \
+    } while (0)
+
+/* Initialize an obstack H for use.  Specify chunk size SIZE (0 means default).
+   Objects start on multiples of ALIGNMENT (0 means use default).
+   CHUNKFUN is the function to use to allocate chunks,
+   and FREEFUN the function to free them.
+
+   Return nonzero if successful, calls obstack_alloc_failed_handler if
+   allocation fails.  */
+
+int
+_obstack_begin (struct obstack *h,
+                int size, int alignment,
+                void *(*chunkfun) (long),
+                void (*freefun) (void *))
+{
+  struct _obstack_chunk *chunk; /* points to new chunk */
+
+  if (alignment == 0)
+    alignment = DEFAULT_ALIGNMENT;
+  if (size == 0)
+    /* Default size is what GNU malloc can fit in a 4096-byte block.  */
+    {
+      /* 12 is sizeof (mhead) and 4 is EXTRA from GNU malloc.
+         Use the values for range checking, because if range checking is off,
+         the extra bytes won't be missed terribly, but if range checking is on
+         and we used a larger request, a whole extra 4096 bytes would be
+         allocated.
+
+         These number are irrelevant to the new GNU malloc.  I suspect it is
+         less sensitive to the size of the request.  */
+      int extra = ((((12 + DEFAULT_ROUNDING - 1) & ~(DEFAULT_ROUNDING - 1))
+                    + 4 + DEFAULT_ROUNDING - 1)
+                   & ~(DEFAULT_ROUNDING - 1));
+      size = 4096 - extra;
+    }
+
+  h->chunkfun = (struct _obstack_chunk * (*) (void *, long)) chunkfun;
+  h->freefun = (void (*) (void *, struct _obstack_chunk *)) freefun;
+  h->chunk_size = size;
+  h->alignment_mask = alignment - 1;
+  h->use_extra_arg = 0;
+
+  chunk = h->chunk = CALL_CHUNKFUN (h, h->chunk_size);
+  if (!chunk)
+    (*obstack_alloc_failed_handler) ();
+  h->next_free = h->object_base = __PTR_ALIGN ((char *) chunk, chunk->contents,
+                                               alignment - 1);
+  h->chunk_limit = chunk->limit
+    = (char *) chunk + h->chunk_size;
+  chunk->prev = 0;
+  /* The initial chunk now contains no empty object.  */
+  h->maybe_empty_object = 0;
+  h->alloc_failed = 0;
+  return 1;
+}
+
+#else
 #include <obstack.h>
+#endif
 
 #include "wrappedlibs.h"
 

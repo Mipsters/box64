@@ -6,7 +6,16 @@
 #include <sys/epoll.h>
 #include <fts.h>
 #include <sys/stat.h>
+
+#ifdef __BIONIC__
+#include <sys/ipc.h>
+#include <semaphore.h>
+#include <asm-generic/sembuf.h>
+// #include <linux/sem.h>
+#define semid_ds semid64_ds
+#else
 #include <sys/sem.h>
+#endif
 
 #include "x64emu.h"
 #include "emu/x64emu_private.h"

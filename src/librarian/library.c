@@ -218,9 +218,31 @@ static void initNativeLib(library_t *lib, box64context_t* context) {
                 break;
             }
             struct link_map real_lm;
-            if(dlinfo(lib->priv.w.lib, RTLD_DI_LINKMAP, &real_lm)) {
-                printf_log(LOG_DEBUG, "Failed to dlinfo lib %s\n", lib->name);
-            }
+
+            // dlinfo(lib->priv.w.lib, RTLD_DI_LINKMAP, &real_lm)
+			
+			/* The information written here is based on glibc's implementation of dlinfo
+			 * I used the source of glibc at the tag: 'glibc-2.35'
+			 * the source file I'm referring to can be viewed in the official code browser at the following url:
+			 * https://sourceware.org/git/?p=glibc.git;a=blob;f=dlfcn/dlinfo.c;h=fc63c02681913cb50c1c2794ce74667b67361c07;hb=f94f6d8a3572840d3ba42ab9ace3ea522c99c0c2
+			 *
+			 * the function 'dlinfo_implementation' is the source of dlinfo, unless 'rtld_active()' returns false, which happens if the dynamic linker is turned of
+			 * this may be a wrong assumtion on my end, but I assume box64/86 relay on dynamically loaded symbols, so that edge case can be ignored
+			 * so 'dlinfo_implementation' is the relevant code
+			 *
+			 * dlinfo throws an error only if RTLD_DI_CONFIGADDR is used (not even if given an invalid value)
+			 * so a run with RTLD_DI_LINKMAP cannot throw an error, we can ignore _dlerror_run and the return value
+			 * 
+			 * because we use 'RTLD_DI_LINKMAP', we can use its code section in the switch
+			 * and this is what we see here
+			 *
+			 * something that is weird to me, is that the info variable given to dlinfo wsd 'struct link_map *'
+			 * according to the linux manual, if the request is 'RTLD_DI_LINKMAP', the type of info should be 'struct link_map **'
+			 * https://man7.org/linux/man-pages/man3/dlinfo.3.html
+			 * but I don't want to change behaviour for now
+			 */
+            *(struct link_map **) &real_lm = (struct link_map *)lib->priv.w.lib;
+ 
             lm->l_addr = real_lm.l_addr;
             lm->l_name = real_lm.l_name;
             lm->l_ld = real_lm.l_ld;
