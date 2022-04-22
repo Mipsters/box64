@@ -58,6 +58,7 @@ typedef void* (*pFpipppppppi_t)(void*, int64_t, void*, void*, void*, void*, void
 	GO(gtk_container_foreach, vFppp_t) \
 	GO(gtk_menu_attach_to_widget, vFppp_t) \
 	GO(gtk_tree_model_foreach, vFppp_t) \
+	GO(gtk_tree_selection_selected_foreach, vFppp_t) \
 	GO(gtk_dialog_add_buttons, vFppV_t) \
 	GO(gtk_list_store_set, vFppV_t) \
 	GO(gtk_message_dialog_format_secondary_markup, vFppV_t) \
@@ -82,6 +83,7 @@ typedef void* (*pFpipppppppi_t)(void*, int64_t, void*, void*, void*, void*, void
 	GO(gtk_tree_sortable_set_sort_func, vFpippp_t) \
 	GO(gtk_action_group_add_actions_full, vFppupp_t) \
 	GO(gtk_cell_layout_set_cell_data_func, vFppppp_t) \
+	GO(gtk_tree_view_column_set_cell_data_func, vFppppp_t) \
 	GO(gtk_binding_entry_add_signal, vFpuipuV_t) \
 	GO(gtk_clipboard_set_with_data, iFppuppp_t) \
 	GO(gtk_clipboard_set_with_owner, iFppuppp_t) \

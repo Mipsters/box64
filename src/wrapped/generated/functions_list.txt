@@ -642,6 +642,7 @@
 #() vFpUpp
 #() vFpfff
 #() vFpdii
+#() vFpdip
 #() vFpddi
 #() vFpddd
 #() vFpLLL
@@ -1429,6 +1430,7 @@
 #() iFpppupu
 #() iFpppLpp
 #() iFppppii
+#() iFppppiu
 #() iFppppip
 #() iFppppup
 #() iFpppppi
@@ -2445,6 +2447,8 @@ wrappedgobject2:
   - g_type_add_interface_static
 - vFpup:
   - g_object_class_install_properties
+- vFppp:
+  - g_object_weak_ref
 - vFppV:
   - g_object_get
   - g_object_set
@@ -2550,6 +2554,7 @@ wrappedgtkx112:
   - gtk_container_foreach
   - gtk_menu_attach_to_widget
   - gtk_tree_model_foreach
+  - gtk_tree_selection_selected_foreach
 - vFppV:
   - gtk_dialog_add_buttons
   - gtk_list_store_set
@@ -2586,6 +2591,7 @@ wrappedgtkx112:
   - gtk_action_group_add_actions_full
 - vFppppp:
   - gtk_cell_layout_set_cell_data_func
+  - gtk_tree_view_column_set_cell_data_func
 - vFpuipuV:
   - gtk_binding_entry_add_signal
 - iFppuppp:
@@ -3244,6 +3250,7 @@ wrappedmpg123:
   - mpg123_replace_reader_handle
   - mpg123_replace_reader_handle_32
   - mpg123_replace_reader_handle_64
+wrappednotify:
 wrappednsl:
 wrappednspr4:
 wrappednss3:

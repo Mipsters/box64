@@ -30,19 +30,24 @@ if(RV64)
     set(LD80BITS OFF CACHE BOOL "")
     set(NOALIGN OFF CACHE BOOL "")
     set(ARM_DYNAREC OFF CACHE BOOL "")  
+    set(PAGE16K OFF CACHE BOOL "")
 endif()
 if(PPC64LE)
     set(LD80BITS OFF CACHE BOOL "")
     set(NOALIGN OFF CACHE BOOL "")
     set(ARM_DYNAREC OFF CACHE BOOL "")
+    set(PAGE16K OFF CACHE BOOL "")
 endif()
 if(RK3399 OR ODROIDN2 OR RPI4ARM64 OR RK3326 OR TEGRAX1 OR PHYTIUM OR SD845 OR LX2160A OR M1)
     set(LD80BITS OFF CACHE BOOL "")
     set(NOALIGN OFF CACHE BOOL "")
     set(ARM_DYNAREC ON CACHE BOOL "")
 endif()
+if(RK3399 OR ODROIDN2 OR RPI4ARM64 OR RK3326 OR TEGRAX1 OR PHYTIUM OR SD845 OR LX2160A)
+    set(PAGE16K OFF CACHE BOOL "")
+endif()
 if(M1 OR LARCH64)
-    set(LD80BITS OFF CACHE BOOL "")
+    set(PAGE16K ON CACHE BOOL "")
 endif()
 option(LD80BITS "Set to ON if host device have 80bits long double (i.e. i386)" ${LD80BITS})
 option(NOALIGN "Set to ON if host device doesn't need re-align (i.e. i386)" ${NOALIGN})
@@ -363,6 +368,7 @@ set(WRAPPEDS
     "${BOX64_ROOT}/src/wrapped/wrappedlibz.c"
     "${BOX64_ROOT}/src/wrapped/wrappedlzma.c"
     "${BOX64_ROOT}/src/wrapped/wrappedmpg123.c"
+    "${BOX64_ROOT}/src/wrapped/wrappednotify.c"
     "${BOX64_ROOT}/src/wrapped/wrappednsl.c"
     "${BOX64_ROOT}/src/wrapped/wrappednspr4.c"
     "${BOX64_ROOT}/src/wrapped/wrappednss3.c"
@@ -482,6 +488,7 @@ if(ARM_DYNAREC)
     "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_f0.c"
     "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_660f.c"
     "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_6664.c"
+    "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_66f0.c"
     "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_f20f.c"
     "${BOX64_ROOT}/src/dynarec/arm64/dynarec_arm64_f30f.c"
     )
@@ -700,11 +707,13 @@ add_test(test16 ${CMAKE_COMMAND} -D TEST_PROGRAM=${CMAKE_BINARY_DIR}/${BOX64}
     -D TEST_REFERENCE=${CMAKE_SOURCE_DIR}/tests/ref16.txt
     -P ${CMAKE_SOURCE_DIR}/runTest.cmake )
 
-add_test(test17 ${CMAKE_COMMAND} -D TEST_PROGRAM=${CMAKE_BINARY_DIR}/${BOX64}
+add_test(sse ${CMAKE_COMMAND} -D TEST_PROGRAM=${CMAKE_BINARY_DIR}/${BOX64}
     -D TEST_ARGS=${CMAKE_SOURCE_DIR}/tests/test17 -D TEST_OUTPUT=tmpfile17.txt
     -D TEST_REFERENCE=${CMAKE_SOURCE_DIR}/tests/ref17.txt
     -P ${CMAKE_SOURCE_DIR}/runTest.cmake )
 
+set_tests_properties(sse PROPERTIES ENVIRONMENT "BOX64_DYNAREC_FASTNAN=0")
+    
 add_test(aes ${CMAKE_COMMAND} -D TEST_PROGRAM=${CMAKE_BINARY_DIR}/${BOX64}
     -D TEST_ARGS=${CMAKE_SOURCE_DIR}/tests/test18 -D TEST_OUTPUT=tmpfile18.txt
     -D TEST_REFERENCE=${CMAKE_SOURCE_DIR}/tests/ref18.txt
