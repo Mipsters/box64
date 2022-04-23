@@ -382,12 +382,16 @@ int my_dladdr1(x64emu_t* emu, void *addr, void *i, void** extra_info, int flags)
     info->dli_fname = NULL;
     info->dli_sname = FindSymbolName(emu->context->maplib, addr, &info->dli_saddr, NULL, &info->dli_fname, &info->dli_fbase, &lib);
     printf_log(LOG_DEBUG, "     dladdr return saddr=%p, fname=\"%s\", sname=\"%s\"\n", info->dli_saddr, info->dli_sname?info->dli_sname:"", info->dli_fname?info->dli_fname:"");
+    
+    #ifndef __BIONIC__
     if(flags==RTLD_DL_SYMENT) {
         printf_log(LOG_INFO, "Warning, unimplement call to dladdr1 with RTLD_DL_SYMENT flags\n");
     } else if (flags==RTLD_DL_LINKMAP) {
         printf_log(LOG_INFO, "Warning, partially unimplemented call to dladdr1 with RTLD_DL_LINKMAP flags\n");
         *(linkmap_t**)extra_info = getLinkMapLib(lib);
     }
+    #endif
+    
     return (info->dli_sname)?1:0;   // success is non-null here...
 }
 int my_dladdr(x64emu_t* emu, void *addr, void *i)

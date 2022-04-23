@@ -36,6 +36,10 @@
 #include "../emu/x64emu_private.h"
 #include "x64tls.h"
 
+#ifdef __BIONIC__
+#include <dlfcn.h>
+#endif
+
 void* my__IO_2_1_stderr_ = NULL;
 void* my__IO_2_1_stdin_  = NULL;
 void* my__IO_2_1_stdout_ = NULL;

@@ -353,7 +353,7 @@ EXPORT int my_pthread_attr_getguardsize(x64emu_t* emu, pthread_attr_t* attr, siz
 	(void)emu;
 	return pthread_attr_getguardsize(getAlignedAttr(attr), size);
 }
-#if __ANDROID_API__ >= 28
+#if !defined(__ANDROID__) || __ANDROID_API__ >= 28
 EXPORT int my_pthread_attr_getinheritsched(x64emu_t* emu, pthread_attr_t* attr, int* sched)
 {
 	(void)emu;
@@ -1107,6 +1107,7 @@ EXPORT int my_pthread_cond_init(x64emu_t* emu, pthread_cond_t *pc, my_condattr_t
 	return ret;
 }
 
+#if !defined(__ANDROID__) || __ANDROID_API__ >= 24
 typedef union my_barrierattr_s {
 	int						x86;
 	pthread_barrierattr_t 	nat;
@@ -1154,6 +1155,7 @@ EXPORT int my_pthread_barrier_init(x64emu_t* emu, pthread_barrier_t* bar, my_bar
 		b->x86 = battr.x86;
 	return ret;
 }
+#endif
 
 #endif
 
@@ -1173,7 +1175,7 @@ emu_jmpbuf_t* GetJmpBuf()
 	emu_jmpbuf_t *ejb = (emu_jmpbuf_t*)pthread_getspecific(jmpbuf_key);
 	if(!ejb) {
 		ejb = (emu_jmpbuf_t*)calloc(1, sizeof(emu_jmpbuf_t));
-		ejb->jmpbuf = calloc(1, sizeof(struct __jmp_buf_tag));
+		ejb->jmpbuf = calloc(1, sizeof(JMP_BUF));
 		pthread_setspecific(jmpbuf_key, ejb);
 	}
 	return ejb;

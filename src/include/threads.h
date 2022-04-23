@@ -1,6 +1,8 @@
 #ifndef _THREADS_H_
 #define _THREADS_H_
 
+#include "jmp.h"
+
 typedef struct box64context_s box64context_t;
 typedef struct x64emu_s x64emu_t;
 
